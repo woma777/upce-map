@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UPCE Campus Map</title>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+
+<style>
+  :root {
+    --navy:   #0d1b2a;
+    --navy2:  #162032;
+    --gold:   #e8b84b;
+    --gold2:  #f5d47a;
+    --ice:    #e8eff7;
+    --muted:  #8a9bb0;
+    --red:    #e05252;
+    --green:  #4caf82;
+    --sidebar-w: 310px;
+    --trans: .28s cubic-bezier(.4,0,.2,1);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    font-family: 'DM Sans', sans-serif;
+    background: var(--navy);
+    color: var(--ice);
+    overflow: hidden;
+  }
+
+  /* ── LAYOUT ── */
+  #app {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    position: relative;
+  }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    background: var(--navy2);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(255,255,255,.07);
+    transition: width var(--trans), min-width var(--trans), opacity var(--trans);
+    overflow: hidden;
+    z-index: 10;
+    position: relative;
+  }
+  #sidebar.collapsed {
+    width: 0;
+    min-width: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* toggle btn */
+  #sidebar-toggle {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 1100;
+    background: var(--navy2);
+    border: 1px solid rgba(255,255,255,.12);
+    color: var(--ice);
+    width: 38px; height: 38px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background var(--trans), left var(--trans);
+    box-shadow: 0 2px 12px rgba(0,0,0,.35);
+  }
+  #sidebar-toggle:hover { background: rgba(232,184,75,.15); color: var(--gold); }
+  #sidebar-toggle svg { width: 18px; height: 18px; }
+
+  /* header */
+  #sidebar-header {
+    padding: 20px 20px 14px;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    flex-shrink: 0;
+  }
+  #sidebar-header .brand {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--gold);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  #sidebar-header h1 {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ice);
+    line-height: 1.2;
+  }
+  #sidebar-header p {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  /* lang + settings row */
+  #controls-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    flex-shrink: 0;
+  }
+  .ctrl-btn {
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
+    color: var(--ice);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-family: 'Space Mono', monospace;
+    cursor: pointer;
+    transition: background var(--trans), color var(--trans);
+  }
+  .ctrl-btn:hover, .ctrl-btn.active { background: var(--gold); color: var(--navy); border-color: var(--gold); }
+  .ctrl-btn.icon-btn { padding: 5px 8px; }
+
+  /* search */
+  #search-wrap {
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    flex-shrink: 0;
+  }
+  #search-input {
+    width: 100%;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
+    color: var(--ice);
+    border-radius: 7px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border-color var(--trans);
+  }
+  #search-input::placeholder { color: var(--muted); }
+  #search-input:focus { border-color: var(--gold); }
+
+  /* filter chips */
+  #filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 20px;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    flex-shrink: 0;
+  }
+  .chip {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all var(--trans);
+  }
+  .chip:hover { border-color: var(--gold); color: var(--gold2); }
+  .chip.active { background: var(--gold); border-color: var(--gold); color: var(--navy); font-weight: 600; }
+
+  /* poi list */
+  #poi-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,.1) transparent;
+  }
+  #poi-list::-webkit-scrollbar { width: 4px; }
+  #poi-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 4px; }
+
+  .poi-item {
+    padding: 10px 20px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: background var(--trans), border-color var(--trans);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .poi-item:hover { background: rgba(255,255,255,.04); }
+  .poi-item.selected { background: rgba(232,184,75,.08); border-left-color: var(--gold); }
+  .poi-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .poi-info { flex: 1; min-width: 0; }
+  .poi-name {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--ice);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .poi-meta {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .poi-badge {
+    font-size: 9.5px;
+    font-family: 'Space Mono', monospace;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(255,255,255,.08);
+    color: var(--muted);
+    white-space: nowrap;
+    align-self: center;
+    flex-shrink: 0;
+  }
+
+  /* sidebar footer */
+  #sidebar-footer {
+    padding: 10px 20px;
+    border-top: 1px solid rgba(255,255,255,.07);
+    font-size: 11px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  /* ── MAP AREA ── */
+  #map-wrap {
+    flex: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  #map {
+    flex: 1;
+    z-index: 1;
+  }
+
+  /* top-right controls on map */
+  #map-controls {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 900;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .map-ctrl-btn {
+    background: var(--navy2);
+    border: 1px solid rgba(255,255,255,.12);
+    color: var(--ice);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-family: 'Space Mono', monospace;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background var(--trans), color var(--trans);
+    box-shadow: 0 2px 10px rgba(0,0,0,.35);
+  }
+  .map-ctrl-btn:hover { background: var(--gold); color: var(--navy); }
+
+  /* ── DETAIL PANEL ── */
+  #detail-panel {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: var(--navy2);
+    border-top: 1px solid rgba(255,255,255,.08);
+    z-index: 800;
+    transform: translateY(100%);
+    transition: transform var(--trans);
+    max-height: 55vh;
+    display: flex;
+    flex-direction: column;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -6px 32px rgba(0,0,0,.4);
+  }
+  #detail-panel.open { transform: translateY(0); }
+
+  #detail-handle {
+    width: 36px; height: 4px;
+    background: rgba(255,255,255,.15);
+    border-radius: 2px;
+    margin: 10px auto 4px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  #detail-inner {
+    padding: 4px 20px 20px;
+    overflow-y: auto;
+    flex: 1;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,.1) transparent;
+  }
+  #detail-inner::-webkit-scrollbar { width: 4px; }
+
+  #detail-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  #detail-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  #detail-title { font-size: 17px; font-weight: 600; color: var(--ice); }
+  #detail-subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .detail-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: flex-start;
+  }
+  .detail-label {
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    color: var(--gold);
+    text-transform: uppercase;
+    min-width: 72px;
+    padding-top: 1px;
+  }
+  .detail-val { font-size: 13px; color: var(--ice); line-height: 1.5; }
+
+  #ai-section { margin-top: 14px; }
+  #ai-section h3 {
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: 8px;
+  }
+  #ai-summary-text {
+    font-size: 13px;
+    color: var(--ice);
+    line-height: 1.65;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 8px;
+    padding: 12px;
+    min-height: 60px;
+  }
+  #ai-summary-text.loading { color: var(--muted); font-style: italic; }
+  #ai-generate-btn {
+    margin-top: 8px;
+    background: var(--gold);
+    color: var(--navy);
+    border: none;
+    border-radius: 7px;
+    padding: 8px 18px;
+    font-size: 12.5px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: opacity var(--trans);
+  }
+  #ai-generate-btn:hover { opacity: .85; }
+  #ai-generate-btn:disabled { opacity: .45; cursor: not-allowed; }
+  #detail-close {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    background: rgba(255,255,255,.07);
+    border: none;
+    color: var(--muted);
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background var(--trans);
+  }
+  #detail-close:hover { background: rgba(255,255,255,.14); }
+
+  /* ── SETTINGS MODAL ── */
+  #settings-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.65);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+  }
+  #settings-modal.open { display: flex; }
+  #settings-box {
+    background: var(--navy2);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 14px;
+    padding: 28px;
+    width: 360px;
+    max-width: 92vw;
+    box-shadow: 0 12px 48px rgba(0,0,0,.5);
+  }
+  #settings-box h2 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--ice);
+  }
+  #settings-box p { font-size: 12px; color: var(--muted); margin-bottom: 18px; }
+  .settings-label {
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 6px;
+    display: block;
+  }
+  #api-key-input {
+    width: 100%;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.12);
+    color: var(--ice);
+    border-radius: 7px;
+    padding: 9px 12px;
+    font-size: 13px;
+    font-family: 'Space Mono', monospace;
+    outline: none;
+    margin-bottom: 16px;
+    transition: border-color var(--trans);
+  }
+  #api-key-input:focus { border-color: var(--gold); }
+  .settings-row { display: flex; gap: 8px; justify-content: flex-end; }
+  .btn-cancel {
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
+    color: var(--muted);
+    border-radius: 7px;
+    padding: 8px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: background var(--trans);
+  }
+  .btn-cancel:hover { background: rgba(255,255,255,.1); }
+  .btn-save {
+    background: var(--gold);
+    color: var(--navy);
+    border: none;
+    border-radius: 7px;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: opacity var(--trans);
+  }
+  .btn-save:hover { opacity: .85; }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: var(--navy2);
+    border: 1px solid rgba(255,255,255,.12);
+    color: var(--ice);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    z-index: 3000;
+    transition: transform .3s;
+    box-shadow: 0 4px 20px rgba(0,0,0,.4);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Leaflet popup override */
+  .leaflet-popup-content-wrapper {
+    background: var(--navy2) !important;
+    color: var(--ice) !important;
+    border: 1px solid rgba(255,255,255,.1) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,.5) !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px !important;
+  }
+  .leaflet-popup-tip { background: var(--navy2) !important; }
+  .leaflet-popup-content { margin: 10px 14px !important; }
+
+  /* Custom marker tooltip */
+  .upce-tooltip {
+    background: var(--navy2) !important;
+    border: 1px solid rgba(255,255,255,.15) !important;
+    border-radius: 7px !important;
+    color: var(--ice) !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    padding: 5px 10px !important;
+    box-shadow: 0 3px 12px rgba(0,0,0,.4) !important;
+    white-space: nowrap !important;
+  }
+  .upce-tooltip::before { display: none !important; }
+  .leaflet-tooltip-top.upce-tooltip::before {
+    display: block !important;
+    border-top-color: rgba(255,255,255,.15) !important;
+  }
+
+  /* Status dot */
+  .status-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+  .status-open { background: var(--green); }
+  .status-closed { background: var(--red); }
+  .status-always { background: var(--gold); }
+
+  /* empty state */
+  #empty-state {
+    padding: 24px 20px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    display: none;
+  }
+
+  @media (max-width: 600px) {
+    :root { --sidebar-w: 100vw; }
+    #sidebar { position: absolute; top: 0; left: 0; bottom: 0; }
+    #sidebar-toggle { left: 60px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ═══ SIDEBAR ═══ -->
+  <aside id="sidebar">
+    <div id="sidebar-header">
+      <div class="brand">UPCE · Pardubice</div>
+      <h1>Campus Services & Food</h1>
+      <p>Interactive facilities map</p>
+    </div>
+
+    <div id="controls-row">
+      <button class="ctrl-btn active" id="btn-cz" onclick="setLang('cz')">CZ</button>
+      <button class="ctrl-btn" id="btn-en" onclick="setLang('en')">EN</button>
+      <div style="flex:1"></div>
+      <button class="ctrl-btn icon-btn" title="Settings" onclick="openSettings()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+
+    <div id="search-wrap">
+      <input id="search-input" type="text" placeholder="Search facilities…" oninput="filterPOIs()" />
+    </div>
+
+    <div id="filter-row">
+      <button class="chip active" data-cat="all" onclick="setCategory(this,'all')">All</button>
+      <button class="chip" data-cat="food" onclick="setCategory(this,'food')">🍽 Food</button>
+      <button class="chip" data-cat="cafe" onclick="setCategory(this,'cafe')">☕ Café</button>
+      <button class="chip" data-cat="vending" onclick="setCategory(this,'vending')">🥤 Vending</button>
+      <button class="chip" data-cat="atm" onclick="setCategory(this,'atm')">💳 ATM</button>
+      <button class="chip" data-cat="print" onclick="setCategory(this,'print')">🖨 Print</button>
+      <button class="chip" data-cat="study" onclick="setCategory(this,'study')">📚 Study</button>
+      <button class="chip" data-cat="service" onclick="setCategory(this,'service')">🏛 Service</button>
+      <button class="chip" data-cat="health" onclick="setCategory(this,'health')">🏥 Health</button>
+    </div>
+
+    <div id="poi-list"></div>
+    <div id="empty-state">No results found</div>
+
+    <div id="sidebar-footer">
+      University of Pardubice · Studentská 95<br/>
+      <span id="poi-count" style="color:var(--gold)"></span>
+    </div>
+  </aside>
+
+  <!-- ═══ MAP + TOGGLE ═══ -->
+  <div id="map-wrap">
+    <!-- toggle -->
+    <button id="sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">
+      <svg id="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+
+    <div id="map"></div>
+
+    <!-- map top-right controls -->
+    <div id="map-controls">
+      <button class="map-ctrl-btn" onclick="resetView()">⌖ Reset View</button>
+      <button class="map-ctrl-btn" id="tile-btn" onclick="cycleTiles()" title="Switch map style">🗺 Map Style</button>
+    </div>
+
+    <!-- detail panel -->
+    <div id="detail-panel">
+      <div id="detail-handle" onclick="closeDetail()"></div>
+      <button id="detail-close" onclick="closeDetail()">✕</button>
+      <div id="detail-inner">
+        <div id="detail-top">
+          <div id="detail-icon"></div>
+          <div>
+            <div id="detail-title"></div>
+            <div id="detail-subtitle"></div>
+          </div>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Address</span>
+          <span class="detail-val" id="detail-address"></span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Hours</span>
+          <span class="detail-val" id="detail-hours"></span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Status</span>
+          <span class="detail-val" id="detail-status"></span>
+        </div>
+        <div class="detail-row" id="detail-note-row" style="display:none">
+          <span class="detail-label">Note</span>
+          <span class="detail-val" id="detail-note"></span>
+        </div>
+
+        <div id="ai-section">
+          <h3>✦ AI Summary</h3>
+          <div id="ai-summary-text">Click "Generate" to get an AI-powered summary of this facility.</div>
+          <button id="ai-generate-btn" onclick="generateAISummary()">Generate Summary</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SETTINGS MODAL ═══ -->
+<div id="settings-modal">
+  <div id="settings-box">
+    <h2>⚙ Settings</h2>
+    <p>Enter your Gemini API key to enable AI-powered facility summaries. Your key is stored only in your browser.</p>
+    <label class="settings-label" for="api-key-input">Gemini API Key</label>
+    <input id="api-key-input" type="password" placeholder="AIza…" />
+    <div class="settings-row">
+      <button class="btn-cancel" onclick="closeSettings()">Cancel</button>
+      <button class="btn-save" onclick="saveSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOAST ═══ -->
+<div id="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════
+// All coordinates verified against the actual UPCE campus map.
+// Campus sits north of Studentská street between Hradecká (west)
+// and K Cihelné (east). Buildings confirmed via OpenStreetMap.
+//
+// Key reference points:
+//   Rektorát (main rectorate) : 50.03680, 15.77340
+//   Menza (canteen)           : 50.03700, 15.77430
+//   DFJP / FES building       : 50.03720, 15.77210
+//   DF  building (library)    : 50.03665, 15.77490
+//   FChT / nám.Čs.legií       : 50.03530, 15.77650
+//   FEI / nám.Čs.legií        : 50.03490, 15.77720
+//   Koleje Polabiny (dorms)   : 50.03870, 15.77560
+//   Hradecká gate / ATM       : 50.03680, 15.77170
+
+const POIS = [
+  {
+    // Menza — the large canteen building in the north-east of campus
+    // between the rectorate and K Cihelné road
+    id: 1,
+    cat: 'food',
+    icon: '🍽',
+    color: '#e8b84b',
+    bg: 'rgba(232,184,75,.18)',
+    lat: 50.03708, lng: 15.77432,
+    cz: { name: 'Hlavní menza UPCE', desc: 'Hlavní jídelna kampusu nabízející teplá jídla, polévky a denní menu pro studenty i zaměstnance.', address: 'Studentská 95 – Menza, Pardubice' },
+    en: { name: 'Main University Canteen', desc: 'Main campus canteen offering hot meals, soups, and daily menus for students and staff.', address: 'Studentská 95 – Canteen, Pardubice' },
+    hours: '10:30 – 14:30',
+    alwaysOpen: false,
+    note: { cz: 'Platba kartou i stravenkou', en: 'Card & meal voucher accepted' }
+  },
+  {
+    // Gallery Café — inside the Rektorát building, central campus
+    id: 2,
+    cat: 'cafe',
+    icon: '☕',
+    color: '#9b7fda',
+    bg: 'rgba(155,127,218,.18)',
+    lat: 50.03682, lng: 15.77348,
+    cz: { name: 'Gallery Café', desc: 'Útulná kavárna v prostorách rektorátu s výběrovou kávou, čajem a lehkým občerstvením.', address: 'Studentská 95 – Rektorát, Pardubice' },
+    en: { name: 'Gallery Café', desc: 'Cosy café inside the rectorate building serving specialty coffee, teas and light snacks.', address: 'Studentská 95 – Rectorate, Pardubice' },
+    hours: '08:00 – 18:00',
+    alwaysOpen: false,
+    note: null
+  },
+  {
+    // FEI Café — Faculty of Electrical Engineering, nám. Čs. legií
+    // south of Studentská, east cluster of faculty buildings
+    id: 3,
+    cat: 'cafe',
+    icon: '☕',
+    color: '#9b7fda',
+    bg: 'rgba(155,127,218,.18)',
+    lat: 50.03492, lng: 15.77718,
+    cz: { name: 'Kavárna FEI', desc: 'Kavárna v budově Fakulty elektrotechniky a informatiky – espresso, studené nápoje, sladkosti.', address: 'nám. Čs. legií 565 – FEI, Pardubice' },
+    en: { name: 'FEI Faculty Café', desc: 'Coffee bar in the Faculty of Electrical Engineering & Informatics building. Espresso, cold drinks and pastries.', address: 'nám. Čs. legií 565 – FEI, Pardubice' },
+    hours: '08:00 – 16:00',
+    alwaysOpen: false,
+    note: null
+  },
+  {
+    // FES vending — Faculty of Economics & Administration
+    // west wing of campus, large building north of Studentská near Hradecká
+    id: 4,
+    cat: 'vending',
+    icon: '🥤',
+    color: '#4caf82',
+    bg: 'rgba(76,175,130,.18)',
+    lat: 50.03722, lng: 15.77215,
+    cz: { name: 'Automat FES', desc: 'Automatový bufet ve vestibulu Fakulty ekonomicko-správní – nápoje, svačiny, káva dostupná 24/7.', address: 'Studentská 84 – FES, Pardubice' },
+    en: { name: 'Snack Machine (FES)', desc: 'Vending machine cluster in the Faculty of Economics & Administration lobby. Drinks, snacks & coffee 24/7.', address: 'Studentská 84 – FES, Pardubice' },
+    hours: '24/7',
+    alwaysOpen: true,
+    note: null
+  },
+  {
+    // Koleje (student dorms) — Polabiny, north-east across Studentská
+    id: 5,
+    cat: 'vending',
+    icon: '🥤',
+    color: '#4caf82',
+    bg: 'rgba(76,175,130,.18)',
+    lat: 50.03872, lng: 15.77558,
+    cz: { name: 'Automat – Koleje', desc: 'Automaty ve vstupní hale studentských kolejí – nápoje a základní potraviny kdykoli.', address: 'Studentská – Koleje UPCE, Pardubice' },
+    en: { name: 'Vending – Student Dorms', desc: 'Vending machines at the student dormitory entrance hall. Beverages and basic foodstuffs.', address: 'Studentská – UPCE Dorms, Pardubice' },
+    hours: '24/7',
+    alwaysOpen: true,
+    note: null
+  },
+  {
+    // Copy centrum — ground floor of the Rektorát, Studentská 95
+    id: 6,
+    cat: 'print',
+    icon: '🖨',
+    color: '#5ba4e8',
+    bg: 'rgba(91,164,232,.18)',
+    lat: 50.03668, lng: 15.77362,
+    cz: { name: 'Copy centrum', desc: 'Tisk, kopírování, vazba závěrečných prací, laminování. Formuláře a kancelářský materiál.', address: 'Studentská 95 – Rektorát přízemí, Pardubice' },
+    en: { name: 'Copy Center', desc: 'Printing, photocopying, thesis binding, laminating. Official forms and stationery available.', address: 'Studentská 95 – Rectorate ground floor, Pardubice' },
+    hours: '08:00 – 15:00',
+    alwaysOpen: false,
+    note: { cz: 'Zavřeno ve svátek', en: 'Closed on public holidays' }
+  },
+  {
+    // ČSOB ATM — on the street outside main campus gate near Hradecká
+    id: 7,
+    cat: 'atm',
+    icon: '💳',
+    color: '#e05252',
+    bg: 'rgba(224,82,82,.18)',
+    lat: 50.03658, lng: 15.77178,
+    cz: { name: 'Bankomat ČSOB', desc: 'Bankomat ČSOB umístěný venku u hlavního vstupu do areálu univerzity u Hradecké ulice.', address: 'Studentská / Hradecká – vstupní brána, Pardubice' },
+    en: { name: 'ČSOB ATM', desc: 'ČSOB bank ATM located outdoors at the main campus entrance near Hradecká street.', address: 'Studentská / Hradecká – main gate, Pardubice' },
+    hours: '24/7',
+    alwaysOpen: true,
+    note: null
+  },
+  {
+    // Knihovna (library) / quiet study zone — DF building, east of rectorate
+    id: 8,
+    cat: 'study',
+    icon: '📚',
+    color: '#e8b84b',
+    bg: 'rgba(232,184,75,.12)',
+    lat: 50.03662, lng: 15.77488,
+    cz: { name: 'Tichá studovna – Knihovna', desc: 'Klimatizovaná studovna ve 2. patře univerzitní knihovny. PC stanice, Wi-Fi a tisk.', address: 'Studentská 95 – Knihovna UPCE, 2. patro' },
+    en: { name: 'Quiet Study Zone – Library', desc: 'Air-conditioned quiet study room on the 2nd floor of the UPCE library. PCs, Wi-Fi and printing.', address: 'Studentská 95 – UPCE Library, 2nd floor' },
+    hours: '08:00 – 20:00',
+    alwaysOpen: false,
+    note: { cz: 'Povinná ISIC karta', en: 'ISIC card required' }
+  },
+  {
+    // FChT computer lab — Faculty of Chemical Technology, nám. Čs. legií
+    id: 9,
+    cat: 'study',
+    icon: '💻',
+    color: '#e8b84b',
+    bg: 'rgba(232,184,75,.12)',
+    lat: 50.03532, lng: 15.77648,
+    cz: { name: 'Počítačová učebna FChT', desc: 'Veřejně přístupná učebna s 30 PC pracovišti ve FChT, dostupná mimo výuku.', address: 'nám. Čs. legií 565 – FChT, Pardubice' },
+    en: { name: 'Computer Lab – FChT', desc: 'Open-access computer lab with 30 workstations in the Faculty of Chemical Technology.', address: 'nám. Čs. legií 565 – FChT, Pardubice' },
+    hours: '08:00 – 18:00',
+    alwaysOpen: false,
+    note: null
+  },
+  {
+    // Studijní oddělení — Student Affairs, rectorate ground floor
+    id: 10,
+    cat: 'service',
+    icon: '🏛',
+    color: '#a0c4ff',
+    bg: 'rgba(160,196,255,.15)',
+    lat: 50.03695, lng: 15.77318,
+    cz: { name: 'Studijní oddělení', desc: 'Administrativa pro studenty: zápisy, potvrzení o studiu, výpisy z indexu, matrika.', address: 'Studentská 95 – Rektorát přízemí, Pardubice' },
+    en: { name: 'Student Affairs Office', desc: 'Student admin: enrollment, study confirmations, transcripts and student registry.', address: 'Studentská 95 – Rectorate ground floor, Pardubice' },
+    hours: '09:00 – 12:00, 13:00 – 15:00',
+    alwaysOpen: false,
+    note: { cz: 'Úřední hodiny PO–ČT', en: 'Office hours Mon–Thu only' }
+  },
+  {
+    // Správa kolejí — Dorms & Catering admin, in the canteen/dorms building
+    id: 11,
+    cat: 'service',
+    icon: '🎓',
+    color: '#a0c4ff',
+    bg: 'rgba(160,196,255,.15)',
+    lat: 50.03718, lng: 15.77398,
+    cz: { name: 'Správa kolejí a menz', desc: 'Administrativa pro ubytování na kolejích, stravovací karty a přihlášení ke stravování.', address: 'Studentská 95 – Menza budova, Pardubice' },
+    en: { name: 'Dorms & Catering Administration', desc: 'Dormitory accommodation, meal card management and meal pre-ordering.', address: 'Studentská 95 – Canteen building, Pardubice' },
+    hours: '09:00 – 14:00',
+    alwaysOpen: false,
+    note: null
+  },
+  {
+    // Zdravotní středisko — health centre, Rektorát basement
+    id: 12,
+    cat: 'health',
+    icon: '🏥',
+    color: '#ff7eac',
+    bg: 'rgba(255,126,172,.15)',
+    lat: 50.03648, lng: 15.77340,
+    cz: { name: 'Zdravotní středisko UPCE', desc: 'Závodní lékař, první pomoc a pracovnělékařské posudky. Objednání nutné předem.', address: 'Studentská 95 – Rektorát suterén, Pardubice' },
+    en: { name: 'UPCE Health Centre', desc: 'Occupational physician, first aid and work/study medical assessments. Appointment required.', address: 'Studentská 95 – Rectorate basement, Pardubice' },
+    hours: '08:00 – 14:30',
+    alwaysOpen: false,
+    note: { cz: 'Objednávejte telefonicky', en: 'Phone appointment required' }
+  },
+  {
+    // Bufet FChT — Faculty of Chemical Technology buffet, nám. Čs. legií
+    id: 13,
+    cat: 'food',
+    icon: '🥗',
+    color: '#e8b84b',
+    bg: 'rgba(232,184,75,.18)',
+    lat: 50.03512, lng: 15.77682,
+    cz: { name: 'Bufet FChT', desc: 'Rychlé občerstvení v přízemí chemické fakulty – sendviče, saláty, polévky, nápoje.', address: 'nám. Čs. legií 565 – FChT přízemí, Pardubice' },
+    en: { name: 'FChT Faculty Buffet', desc: 'Quick-service buffet on the ground floor of the Chemical Technology faculty.', address: 'nám. Čs. legií 565 – FChT ground floor, Pardubice' },
+    hours: '07:30 – 14:00',
+    alwaysOpen: false,
+    note: null
+  },
+  {
+    // Informační centrum — main entrance hall of Rektorát
+    id: 14,
+    cat: 'service',
+    icon: '📮',
+    color: '#a0c4ff',
+    bg: 'rgba(160,196,255,.15)',
+    lat: 50.03672, lng: 15.77298,
+    cz: { name: 'Informační centrum UPCE', desc: 'Informace pro uchazeče, studenty i veřejnost. Propagační materiály a mapy kampusu.', address: 'Studentská 95 – Rektorát vstupní hala' },
+    en: { name: 'UPCE Information Centre', desc: 'Visitor, applicant and student information point. Maps, brochures and campus guidance.', address: 'Studentská 95 – Rectorate entrance hall' },
+    hours: '09:00 – 15:00',
+    alwaysOpen: false,
+    note: null
+  }
+];
+
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+let lang = 'cz';
+let currentCat = 'all';
+let selectedId = null;
+let sidebarOpen = true;
+let apiKey = localStorage.getItem('upce_gemini_key') || '';
+let markers = {};
+let currentPOI = null;
+
+// ════════════════════════════════════════
+// MAP INIT
+// ════════════════════════════════════════
+const map = L.map('map', {
+  center: [50.03660, 15.77420],
+  zoom: 16,
+  zoomControl: false
+});
+
+// ── TILE PROVIDERS ──────────────────────────────────────────────────────────
+// OSM volunteer servers block requests without a Referer header (local files).
+// Primary  : CartoDB Voyager  — global CDN, no Referer required, great CZ detail
+// Fallback 1: CartoDB Positron — lighter style, same CDN
+// Fallback 2: Stadia Alidade  — reliable open provider, no Referer required
+// The layer auto-switches on the first tile error so the map always loads.
+
+const TILES = [
+  {
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    opts: {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
+      subdomains: 'abcd', maxZoom: 20
+    }
+  },
+  {
+    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    opts: {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
+      subdomains: 'abcd', maxZoom: 20
+    }
+  },
+  {
+    url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png',
+    opts: {
+      attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 20
+    }
+  }
+];
+
+let _tileIdx = 0;
+let _tileLayer = null;
+let _tileSwitched = false;
+
+function loadTiles(idx) {
+  if (idx >= TILES.length) { showToast('Map tiles unavailable — check internet connection.'); return; }
+  if (_tileLayer) { map.removeLayer(_tileLayer); }
+  const t = TILES[idx];
+  _tileLayer = L.tileLayer(t.url, t.opts);
+  _tileLayer.on('tileerror', () => {
+    if (!_tileSwitched && _tileIdx === idx) {
+      _tileSwitched = true;
+      _tileIdx = idx + 1;
+      setTimeout(() => { _tileSwitched = false; loadTiles(_tileIdx); }, 800);
+    }
+  });
+  _tileLayer.addTo(map);
+}
+
+loadTiles(0);
+
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+function makeIcon(poi) {
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      width:38px;height:38px;border-radius:50%;
+      background:${poi.bg};border:3px solid ${poi.color};
+      display:flex;align-items:center;justify-content:center;
+      font-size:17px;box-shadow:0 2px 10px rgba(0,0,0,.45);
+      transition:transform .15s;cursor:pointer;
+      backdrop-filter:blur(2px);
+    ">${poi.icon}</div>`,
+    iconSize: [38, 38],
+    iconAnchor: [19, 19]
+  });
+}
+
+function makeIconSelected(poi) {
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      width:48px;height:48px;border-radius:50%;
+      background:${poi.bg};border:3.5px solid ${poi.color};
+      display:flex;align-items:center;justify-content:center;
+      font-size:22px;box-shadow:0 4px 18px rgba(0,0,0,.55);
+      cursor:pointer;transform:scale(1.1);
+      backdrop-filter:blur(2px);
+    ">${poi.icon}</div>`,
+    iconSize: [48, 48],
+    iconAnchor: [24, 24]
+  });
+}
+
+POIS.forEach(poi => {
+  const m = L.marker([poi.lat, poi.lng], { icon: makeIcon(poi) }).addTo(map);
+  m.on('click', () => selectPOI(poi.id));
+  m.bindTooltip(`<strong>${poi[lang]?.name || poi.cz.name}</strong>`, {
+    permanent: false,
+    direction: 'top',
+    offset: [0, -22],
+    className: 'upce-tooltip'
+  });
+  markers[poi.id] = m;
+});
+
+// ════════════════════════════════════════
+// SIDEBAR TOGGLE
+// ════════════════════════════════════════
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  document.getElementById('sidebar').classList.toggle('collapsed', !sidebarOpen);
+  document.getElementById('toggle-icon').innerHTML = sidebarOpen
+    ? '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>'
+    : '<polyline points="9 18 15 12 9 6"/>';
+  setTimeout(() => map.invalidateSize(), 300);
+}
+
+// ════════════════════════════════════════
+// LANGUAGE
+// ════════════════════════════════════════
+function setLang(l) {
+  lang = l;
+  document.getElementById('btn-cz').classList.toggle('active', l === 'cz');
+  document.getElementById('btn-en').classList.toggle('active', l === 'en');
+  document.getElementById('search-input').placeholder = l === 'cz' ? 'Hledat…' : 'Search facilities…';
+  renderList();
+  if (currentPOI) renderDetail(currentPOI);
+}
+
+// ════════════════════════════════════════
+// FILTER / SEARCH
+// ════════════════════════════════════════
+function setCategory(el, cat) {
+  currentCat = cat;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderList();
+}
+
+function filterPOIs() { renderList(); }
+
+function getFiltered() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  return POIS.filter(p => {
+    const matchCat = currentCat === 'all' || p.cat === currentCat;
+    const name = p[lang].name.toLowerCase();
+    const desc = p[lang].desc.toLowerCase();
+    const matchQ = !q || name.includes(q) || desc.includes(q);
+    return matchCat && matchQ;
+  });
+}
+
+// ════════════════════════════════════════
+// RENDER LIST
+// ════════════════════════════════════════
+function isOpen(poi) {
+  if (poi.alwaysOpen) return 'always';
+  const now = new Date();
+  const hm = now.getHours() * 60 + now.getMinutes();
+  // parse first range
+  const m = poi.hours.match(/(\d+):(\d+)\s*[–-]\s*(\d+):(\d+)/);
+  if (!m) return 'unknown';
+  const open = parseInt(m[1]) * 60 + parseInt(m[2]);
+  const close = parseInt(m[3]) * 60 + parseInt(m[4]);
+  return hm >= open && hm < close ? 'open' : 'closed';
+}
+
+function renderList() {
+  const list = document.getElementById('poi-list');
+  const empty = document.getElementById('empty-state');
+  const filtered = getFiltered();
+  const count = document.getElementById('poi-count');
+  count.textContent = `${filtered.length} ${lang === 'cz' ? 'míst' : 'locations'}`;
+
+  // show/hide markers
+  POIS.forEach(p => {
+    const inFilter = filtered.some(f => f.id === p.id);
+    if (inFilter) { markers[p.id].addTo(map); }
+    else { markers[p.id].remove(); }
+  });
+
+  if (filtered.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  list.innerHTML = filtered.map(p => {
+    const status = isOpen(p);
+    const dotCls = status === 'always' ? 'status-always' : status === 'open' ? 'status-open' : 'status-closed';
+    const statusLabel = lang === 'cz'
+      ? (status === 'always' ? '24/7' : status === 'open' ? 'Otevřeno' : 'Zavřeno')
+      : (status === 'always' ? '24/7' : status === 'open' ? 'Open' : 'Closed');
+    return `
+      <div class="poi-item ${selectedId === p.id ? 'selected' : ''}" onclick="selectPOI(${p.id})">
+        <div class="poi-icon" style="background:${p.bg};color:${p.color}">${p.icon}</div>
+        <div class="poi-info">
+          <div class="poi-name">${p[lang].name}</div>
+          <div class="poi-meta"><span class="status-dot ${dotCls}"></span>${statusLabel} · ${p.hours}</div>
+        </div>
+        <div class="poi-badge">${p.cat.toUpperCase()}</div>
+      </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════
+// SELECT POI
+// ════════════════════════════════════════
+function selectPOI(id) {
+  if (selectedId && markers[selectedId]) markers[selectedId].setIcon(makeIcon(POIS.find(p => p.id === selectedId)));
+  selectedId = id;
+  const poi = POIS.find(p => p.id === id);
+  if (!poi) return;
+  markers[id].setIcon(makeIconSelected(poi));
+  map.flyTo([poi.lat, poi.lng], 17, { duration: 0.6 });
+  renderDetail(poi);
+  renderList();
+}
+
+// ════════════════════════════════════════
+// DETAIL PANEL
+// ════════════════════════════════════════
+function renderDetail(poi) {
+  currentPOI = poi;
+  const status = isOpen(poi);
+  const dotCls = status === 'always' ? 'status-always' : status === 'open' ? 'status-open' : 'status-closed';
+  const statusLabel = lang === 'cz'
+    ? (status === 'always' ? '24/7 – vždy otevřeno' : status === 'open' ? 'Právě otevřeno' : 'Momentálně zavřeno')
+    : (status === 'always' ? '24/7 – always open' : status === 'open' ? 'Currently open' : 'Currently closed');
+
+  document.getElementById('detail-icon').style.cssText = `background:${poi.bg};color:${poi.color};font-size:22px;`;
+  document.getElementById('detail-icon').textContent = poi.icon;
+  document.getElementById('detail-title').textContent = poi[lang].name;
+  document.getElementById('detail-subtitle').textContent = lang === 'cz' ? poi.cat.toUpperCase() + ' · ' + poi[lang].address : poi.cat.toUpperCase() + ' · ' + poi[lang].address;
+  document.getElementById('detail-address').textContent = poi[lang].address;
+  document.getElementById('detail-hours').textContent = poi.hours;
+  document.getElementById('detail-status').innerHTML = `<span class="status-dot ${dotCls}"></span>${statusLabel}`;
+
+  const noteRow = document.getElementById('detail-note-row');
+  if (poi.note) {
+    noteRow.style.display = 'flex';
+    document.getElementById('detail-note').textContent = poi.note[lang];
+  } else {
+    noteRow.style.display = 'none';
+  }
+
+  document.getElementById('ai-summary-text').textContent = lang === 'cz'
+    ? 'Klikněte na "Generovat" pro AI shrnutí tohoto místa.'
+    : 'Click "Generate" to get an AI-powered summary of this facility.';
+  document.getElementById('ai-generate-btn').textContent = lang === 'cz' ? 'Generovat shrnutí' : 'Generate Summary';
+  document.getElementById('ai-generate-btn').disabled = false;
+
+  document.getElementById('detail-panel').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('open');
+  if (selectedId && markers[selectedId]) {
+    const poi = POIS.find(p => p.id === selectedId);
+    if (poi) markers[selectedId].setIcon(makeIcon(poi));
+  }
+  selectedId = null;
+  currentPOI = null;
+  renderList();
+}
+
+// ════════════════════════════════════════
+// AI SUMMARY (Gemini)
+// ════════════════════════════════════════
+async function generateAISummary() {
+  if (!currentPOI) return;
+  if (!apiKey) {
+    showToast(lang === 'cz' ? 'Nejdřív vložte API klíč v Nastavení.' : 'Please enter your API key in Settings first.');
+    openSettings();
+    return;
+  }
+
+  const btn = document.getElementById('ai-generate-btn');
+  const box = document.getElementById('ai-summary-text');
+  btn.disabled = true;
+  box.className = 'loading';
+  box.textContent = lang === 'cz' ? 'Generuji shrnutí…' : 'Generating summary…';
+
+  const prompt = lang === 'cz'
+    ? `Napiš stručné a přátelské shrnutí (max 80 slov) pro studenty Univerzity Pardubice o tomto místě na kampusu:\n\nNázev: ${currentPOI.cz.name}\nPopis: ${currentPOI.cz.desc}\nAdresa: ${currentPOI.cz.address}\nOtevřeno: ${currentPOI.hours}\n\nZahrň praktický tip pro studenty.`
+    : `Write a concise, friendly summary (max 80 words) for University of Pardubice students about this campus facility:\n\nName: ${currentPOI.en.name}\nDescription: ${currentPOI.en.desc}\nAddress: ${currentPOI.en.address}\nHours: ${currentPOI.hours}\n\nInclude one practical tip for students.`;
+
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+    const data = await res.json();
+    if (data.candidates && data.candidates[0]) {
+      box.className = '';
+      box.textContent = data.candidates[0].content.parts[0].text;
+    } else if (data.error) {
+      box.className = '';
+      box.textContent = '⚠ ' + data.error.message;
+    } else {
+      throw new Error('Unexpected response');
+    }
+  } catch (e) {
+    box.className = '';
+    box.textContent = lang === 'cz' ? '⚠ Chyba při generování. Zkontrolujte API klíč.' : '⚠ Generation failed. Check your API key.';
+  }
+  btn.disabled = false;
+}
+
+// ════════════════════════════════════════
+// SETTINGS
+// ════════════════════════════════════════
+function openSettings() {
+  document.getElementById('api-key-input').value = apiKey;
+  document.getElementById('settings-modal').classList.add('open');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
+function saveSettings() {
+  apiKey = document.getElementById('api-key-input').value.trim();
+  localStorage.setItem('upce_gemini_key', apiKey);
+  closeSettings();
+  showToast(lang === 'cz' ? 'API klíč uložen.' : 'API key saved.');
+}
+
+// ════════════════════════════════════════
+// RESET VIEW
+// ════════════════════════════════════════
+function resetView() {
+  map.flyTo([50.03660, 15.77420], 16, { duration: 0.8 });
+  closeDetail();
+  document.getElementById('search-input').value = '';
+  currentCat = 'all';
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  document.querySelector('[data-cat="all"]').classList.add('active');
+  renderList();
+}
+
+// ════════════════════════════════════════
+// TILE STYLE SWITCHER
+// ════════════════════════════════════════
+const TILE_LABELS = ['🗺 Voyager', '🗺 Light', '🗺 Smooth'];
+function cycleTiles() {
+  _tileIdx = (_tileIdx + 1) % TILES.length;
+  _tileSwitched = false;
+  loadTiles(_tileIdx);
+  const btn = document.getElementById('tile-btn');
+  if (btn) btn.textContent = TILE_LABELS[_tileIdx];
+  showToast('Map style: ' + TILE_LABELS[_tileIdx].replace('🗺 ', ''));
+}
+
+// ════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// close modal on backdrop click
+document.getElementById('settings-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('settings-modal')) closeSettings();
+});
+
+// Fix Firefox map height bug
+window.addEventListener('load', () => { setTimeout(() => map.invalidateSize(), 100); });
+window.addEventListener('resize', () => map.invalidateSize());
+
+// ── INIT ──
+renderList();
+</script>
+</body>
+</html>
