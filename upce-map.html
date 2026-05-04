@@ -701,9 +701,9 @@ const POIS = [
     icon: '🍽',
     color: '#e8b84b',
     bg: 'rgba(232,184,75,.18)',
-    lat: 50.03708, lng: 15.77432,
-    cz: { name: 'Hlavní menza UPCE', desc: 'Hlavní jídelna kampusu nabízející teplá jídla, polévky a denní menu pro studenty i zaměstnance.', address: 'Studentská 95 – Menza, Pardubice' },
-    en: { name: 'Main University Canteen', desc: 'Main campus canteen offering hot meals, soups, and daily menus for students and staff.', address: 'Studentská 95 – Canteen, Pardubice' },
+    lat: 50.049582731565025, lng: 15.76836822518796,
+    cz: { name: 'Hlavní menza UPCE', desc: 'Hlavní jídelna kampusu nabízející teplá jídla, polévky a denní menu pro studenty i zaměstnance.', address: 'Studentská 268 – Menza, Pardubice' },
+    en: { name: 'Main University Canteen', desc: 'Main campus canteen offering hot meals, soups, and daily menus for students and staff.', address: 'Studentská 268 – Canteen, Pardubice' },
     hours: '10:30 – 14:30',
     alwaysOpen: false,
     note: { cz: 'Platba kartou i stravenkou', en: 'Card & meal voucher accepted' }
@@ -715,28 +715,28 @@ const POIS = [
     icon: '☕',
     color: '#9b7fda',
     bg: 'rgba(155,127,218,.18)',
-    lat: 50.03682, lng: 15.77348,
+    lat: 50.04729823405816, lng: 15.769275098497534,
     cz: { name: 'Gallery Café', desc: 'Útulná kavárna v prostorách rektorátu s výběrovou kávou, čajem a lehkým občerstvením.', address: 'Studentská 95 – Rektorát, Pardubice' },
     en: { name: 'Gallery Café', desc: 'Cosy café inside the rectorate building serving specialty coffee, teas and light snacks.', address: 'Studentská 95 – Rectorate, Pardubice' },
     hours: '08:00 – 18:00',
     alwaysOpen: false,
     note: null
   },
-  {
-    // FEI Café — Faculty of Electrical Engineering, nám. Čs. legií
-    // south of Studentská, east cluster of faculty buildings
+ {
+    // Knihovna (library) / quiet study zone — DF building, east of rectorate
     id: 3,
-    cat: 'cafe',
-    icon: '☕',
-    color: '#9b7fda',
-    bg: 'rgba(155,127,218,.18)',
-    lat: 50.03492, lng: 15.77718,
-    cz: { name: 'Kavárna FEI', desc: 'Kavárna v budově Fakulty elektrotechniky a informatiky – espresso, studené nápoje, sladkosti.', address: 'nám. Čs. legií 565 – FEI, Pardubice' },
-    en: { name: 'FEI Faculty Café', desc: 'Coffee bar in the Faculty of Electrical Engineering & Informatics building. Espresso, cold drinks and pastries.', address: 'nám. Čs. legií 565 – FEI, Pardubice' },
-    hours: '08:00 – 16:00',
+    cat: 'study',
+    icon: '📚',
+    color: '#e8b84b',
+    bg: 'rgba(232,184,75,.12)',
+    lat: 50.04935906564074, lng: 15.766639236225009,
+    cz: { name: 'Tichá studovna – Knihovna', desc: 'Klimatizovaná studovna ve 2. patře univerzitní knihovny. PC stanice, Wi-Fi a tisk.', address: 'Studentská 519 – Knihovna UPCE, 2. patro' },
+    en: { name: 'Quiet Study Zone – Library', desc: 'Air-conditioned quiet study room on the 2nd floor of the UPCE library. PCs, Wi-Fi and printing.', address: 'Studentská 519 – UPCE Library, 2nd floor' },
+    hours: '08:00 – 20:00',
     alwaysOpen: false,
-    note: null
+    note: { cz: 'Povinná ISIC karta', en: 'ISIC card required' }
   },
+  
   {
     // FES vending — Faculty of Economics & Administration
     // west wing of campus, large building north of Studentská near Hradecká
@@ -745,7 +745,7 @@ const POIS = [
     icon: '🥤',
     color: '#4caf82',
     bg: 'rgba(76,175,130,.18)',
-    lat: 50.03722, lng: 15.77215,
+    lat: 50.04818397095544, lng: 15.770510668825548,
     cz: { name: 'Automat FES', desc: 'Automatový bufet ve vestibulu Fakulty ekonomicko-správní – nápoje, svačiny, káva dostupná 24/7.', address: 'Studentská 84 – FES, Pardubice' },
     en: { name: 'Snack Machine (FES)', desc: 'Vending machine cluster in the Faculty of Economics & Administration lobby. Drinks, snacks & coffee 24/7.', address: 'Studentská 84 – FES, Pardubice' },
     hours: '24/7',
@@ -759,9 +759,9 @@ const POIS = [
     icon: '🥤',
     color: '#4caf82',
     bg: 'rgba(76,175,130,.18)',
-    lat: 50.03872, lng: 15.77558,
-    cz: { name: 'Automat – Koleje', desc: 'Automaty ve vstupní hale studentských kolejí – nápoje a základní potraviny kdykoli.', address: 'Studentská – Koleje UPCE, Pardubice' },
-    en: { name: 'Vending – Student Dorms', desc: 'Vending machines at the student dormitory entrance hall. Beverages and basic foodstuffs.', address: 'Studentská – UPCE Dorms, Pardubice' },
+    lat: 50.04891785346796, lng: 15.767624072644043,
+    cz: { name: 'Automat – Koleje', desc: 'Automaty ve vstupní hale studentských kolejí – nápoje a základní potraviny kdykoli.', address: 'Studentská 199– Koleje UPCE, Pardubice' },
+    en: { name: 'Vending – Student Dorms', desc: 'Vending machines at the student dormitory entrance hall. Beverages and basic foodstuffs.', address: 'Studentská 199 – UPCE Dorms, Pardubice' },
     hours: '24/7',
     alwaysOpen: true,
     note: null
@@ -773,40 +773,49 @@ const POIS = [
     icon: '🖨',
     color: '#5ba4e8',
     bg: 'rgba(91,164,232,.18)',
-    lat: 50.03668, lng: 15.77362,
+    lat: 50.04735812833271, lng: 15.769341064801715,
     cz: { name: 'Copy centrum', desc: 'Tisk, kopírování, vazba závěrečných prací, laminování. Formuláře a kancelářský materiál.', address: 'Studentská 95 – Rektorát přízemí, Pardubice' },
     en: { name: 'Copy Center', desc: 'Printing, photocopying, thesis binding, laminating. Official forms and stationery available.', address: 'Studentská 95 – Rectorate ground floor, Pardubice' },
     hours: '08:00 – 15:00',
     alwaysOpen: false,
     note: { cz: 'Zavřeno ve svátek', en: 'Closed on public holidays' }
   },
-  {
-    // ČSOB ATM — on the street outside main campus gate near Hradecká
-    id: 7,
-    cat: 'atm',
-    icon: '💳',
-    color: '#e05252',
-    bg: 'rgba(224,82,82,.18)',
-    lat: 50.03658, lng: 15.77178,
-    cz: { name: 'Bankomat ČSOB', desc: 'Bankomat ČSOB umístěný venku u hlavního vstupu do areálu univerzity u Hradecké ulice.', address: 'Studentská / Hradecká – vstupní brána, Pardubice' },
-    en: { name: 'ČSOB ATM', desc: 'ČSOB bank ATM located outdoors at the main campus entrance near Hradecká street.', address: 'Studentská / Hradecká – main gate, Pardubice' },
-    hours: '24/7',
-    alwaysOpen: true,
-    note: null
+{
+  id: 7,
+  cat: 'atm',
+  icon: '💳',
+  color: '#e05252',
+  bg: 'rgba(224,82,82,.18)',
+  lat: 50.04904748846568,
+  lng: 15.767594175464017,
+  cz: {
+    name: 'Komerční banka – bankomat',
+    desc: 'Bankomat Komerční banky umístěný venku u hlavního vstupu do areálu univerzity u Hradecké ulice.',
+    address: 'Studentská 199 – vstupní brána, Pardubice'
   },
-  {
-    // Knihovna (library) / quiet study zone — DF building, east of rectorate
+  en: {
+    name: 'Komerční banka ATM',
+    desc: 'Komerční banka ATM located outdoors at the main campus entrance near Hradecká street.',
+    address: 'Studentská 199 – main gate, Pardubice'
+  },
+  hours: '24/7',
+  alwaysOpen: true,
+  note: null
+},
+ {
+    // FEI Café — Faculty of Electrical Engineering, nám. Čs. legií
+    // south of Studentská, east cluster of faculty buildings
     id: 8,
-    cat: 'study',
-    icon: '📚',
-    color: '#e8b84b',
-    bg: 'rgba(232,184,75,.12)',
-    lat: 50.03662, lng: 15.77488,
-    cz: { name: 'Tichá studovna – Knihovna', desc: 'Klimatizovaná studovna ve 2. patře univerzitní knihovny. PC stanice, Wi-Fi a tisk.', address: 'Studentská 95 – Knihovna UPCE, 2. patro' },
-    en: { name: 'Quiet Study Zone – Library', desc: 'Air-conditioned quiet study room on the 2nd floor of the UPCE library. PCs, Wi-Fi and printing.', address: 'Studentská 95 – UPCE Library, 2nd floor' },
-    hours: '08:00 – 20:00',
+    cat: 'cafe',
+    icon: '☕',
+    color: '#9b7fda',
+    bg: 'rgba(155,127,218,.18)',
+    lat: 50.03352274353142,  lng: 15.767381050786451,
+    cz: { name: 'Kavárna FEI', desc: 'Kavárna v budově Fakulty elektrotechniky a informatiky – espresso, studené nápoje, sladkosti.', address: 'nám. Čs. legií 565 – FEI, Pardubice' },
+    en: { name: 'FEI Faculty Café', desc: 'Coffee bar in the Faculty of Electrical Engineering & Informatics building. Espresso, cold drinks and pastries.', address: 'nám. Čs. legií 565 – FEI, Pardubice' },
+    hours: '08:00 – 16:00',
     alwaysOpen: false,
-    note: { cz: 'Povinná ISIC karta', en: 'ISIC card required' }
+    note: null
   },
   {
     // FChT computer lab — Faculty of Chemical Technology, nám. Čs. legií
@@ -815,9 +824,9 @@ const POIS = [
     icon: '💻',
     color: '#e8b84b',
     bg: 'rgba(232,184,75,.12)',
-    lat: 50.03532, lng: 15.77648,
-    cz: { name: 'Počítačová učebna FChT', desc: 'Veřejně přístupná učebna s 30 PC pracovišti ve FChT, dostupná mimo výuku.', address: 'nám. Čs. legií 565 – FChT, Pardubice' },
-    en: { name: 'Computer Lab – FChT', desc: 'Open-access computer lab with 30 workstations in the Faculty of Chemical Technology.', address: 'nám. Čs. legií 565 – FChT, Pardubice' },
+    lat: 50.04993049651313, lng: 15.76798428549534,
+    cz: { name: 'Počítačová učebna FChT', desc: 'Veřejně přístupná učebna s 30 PC pracovišti ve FChT, dostupná mimo výuku.', address: 'nám. Čs. legií 573 – FChT, Pardubice' },
+    en: { name: 'Computer Lab – FChT', desc: 'Open-access computer lab with 30 workstations in the Faculty of Chemical Technology.', address: 'nám. Čs. legií 573 – FChT, Pardubice' },
     hours: '08:00 – 18:00',
     alwaysOpen: false,
     note: null
@@ -829,7 +838,7 @@ const POIS = [
     icon: '🏛',
     color: '#a0c4ff',
     bg: 'rgba(160,196,255,.15)',
-    lat: 50.03695, lng: 15.77318,
+    lat: 50.04726852567053,  lng: 15.76916775389337,
     cz: { name: 'Studijní oddělení', desc: 'Administrativa pro studenty: zápisy, potvrzení o studiu, výpisy z indexu, matrika.', address: 'Studentská 95 – Rektorát přízemí, Pardubice' },
     en: { name: 'Student Affairs Office', desc: 'Student admin: enrollment, study confirmations, transcripts and student registry.', address: 'Studentská 95 – Rectorate ground floor, Pardubice' },
     hours: '09:00 – 12:00, 13:00 – 15:00',
@@ -843,9 +852,9 @@ const POIS = [
     icon: '🎓',
     color: '#a0c4ff',
     bg: 'rgba(160,196,255,.15)',
-    lat: 50.03718, lng: 15.77398,
-    cz: { name: 'Správa kolejí a menz', desc: 'Administrativa pro ubytování na kolejích, stravovací karty a přihlášení ke stravování.', address: 'Studentská 95 – Menza budova, Pardubice' },
-    en: { name: 'Dorms & Catering Administration', desc: 'Dormitory accommodation, meal card management and meal pre-ordering.', address: 'Studentská 95 – Canteen building, Pardubice' },
+    lat: 50.04894990230785,  lng:  15.768698190013762,
+    cz: { name: 'Správa kolejí a menz', desc: 'Administrativa pro ubytování na kolejích, stravovací karty a přihlášení ke stravování.', address: 'Studentská 200 – Menza budova, Pardubice' },
+    en: { name: 'Dorms & Catering Administration', desc: 'Dormitory accommodation, meal card management and meal pre-ordering.', address: 'Studentská 200 – Canteen building, Pardubice' },
     hours: '09:00 – 14:00',
     alwaysOpen: false,
     note: null
@@ -857,7 +866,7 @@ const POIS = [
     icon: '🏥',
     color: '#ff7eac',
     bg: 'rgba(255,126,172,.15)',
-    lat: 50.03648, lng: 15.77340,
+    lat: 50.04720570705172,  lng: 15.769462965039766,
     cz: { name: 'Zdravotní středisko UPCE', desc: 'Závodní lékař, první pomoc a pracovnělékařské posudky. Objednání nutné předem.', address: 'Studentská 95 – Rektorát suterén, Pardubice' },
     en: { name: 'UPCE Health Centre', desc: 'Occupational physician, first aid and work/study medical assessments. Appointment required.', address: 'Studentská 95 – Rectorate basement, Pardubice' },
     hours: '08:00 – 14:30',
@@ -871,9 +880,9 @@ const POIS = [
     icon: '🥗',
     color: '#e8b84b',
     bg: 'rgba(232,184,75,.18)',
-    lat: 50.03512, lng: 15.77682,
-    cz: { name: 'Bufet FChT', desc: 'Rychlé občerstvení v přízemí chemické fakulty – sendviče, saláty, polévky, nápoje.', address: 'nám. Čs. legií 565 – FChT přízemí, Pardubice' },
-    en: { name: 'FChT Faculty Buffet', desc: 'Quick-service buffet on the ground floor of the Chemical Technology faculty.', address: 'nám. Čs. legií 565 – FChT ground floor, Pardubice' },
+    lat: 50.049993066140566,  lng:  15.767630832786137,
+    cz: { name: 'Bufet FChT', desc: 'Rychlé občerstvení v přízemí chemické fakulty – sendviče, saláty, polévky, nápoje.', address: 'nám. Čs. legií 573 – FChT přízemí, Pardubice' },
+    en: { name: 'FChT Faculty Buffet', desc: 'Quick-service buffet on the ground floor of the Chemical Technology faculty.', address: 'nám. Čs. legií 573 – FChT ground floor, Pardubice' },
     hours: '07:30 – 14:00',
     alwaysOpen: false,
     note: null
@@ -885,7 +894,7 @@ const POIS = [
     icon: '📮',
     color: '#a0c4ff',
     bg: 'rgba(160,196,255,.15)',
-    lat: 50.03672, lng: 15.77298,
+    lat: 50.04727619749118, lng: 15.769286112319813,
     cz: { name: 'Informační centrum UPCE', desc: 'Informace pro uchazeče, studenty i veřejnost. Propagační materiály a mapy kampusu.', address: 'Studentská 95 – Rektorát vstupní hala' },
     en: { name: 'UPCE Information Centre', desc: 'Visitor, applicant and student information point. Maps, brochures and campus guidance.', address: 'Studentská 95 – Rectorate entrance hall' },
     hours: '09:00 – 15:00',
